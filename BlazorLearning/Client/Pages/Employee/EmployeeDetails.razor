@@ -1,0 +1,111 @@
+﻿@page "/fetchemployeedetails"
+@using BlazorLearning.Shared
+@using BlazorLearning.Shared.ViewModel;
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ILogger<EmployeeDetails> LoggerLog;
+<h3>EmployeeDetails</h3>
+<p>Blazor CRUD operation</p>
+<div class="row">
+    <div class="col-md-6">
+        <a href='/employee/add' class="btn btn-primary" role="button">
+            <i class="fas fa-user-plus"></i>
+            Add Employee
+        </a>
+    </div>
+    <div class="input-group col">
+        <input type="text" class="form-control" placeholder="Search employee by name"
+        @bind="SearchString" @bind:event="oninput" @onkeyup="FilterUser" />
+        @if (SearchString.Length > 0)
+        {
+            <div class="input-group-append">
+                <button class="btn btn-danger" @onclick="ResetSearch">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        }
+    </div>
+</div>
+<br />
+@if (employeeList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped align-middle table-bordered">
+        <thead class="table-success">
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th>E-mail</th>
+                <th>Cell No</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var emp in employeeList)
+            {
+                <tr>
+                    <td>@emp.Name</td>
+                    <td>@emp.Address</td>
+                    <td>@emp.EmailId</td>
+                    <td>@emp.MobileNumber</td>
+                    <td>
+                        <a href='employee/edit/@emp.Id' class="btn btn-outline-dark" role="button">
+                            Edit
+                        </a>
+                        <a href='/employee/delete/@emp.Id' class="btn btn-outline-danger" role="button">
+                            Delete
+                        </a>
+                    </td>
+                </tr>
+            }
+            @*<Pager Result=@Books PageChanged=@PagerPageChanged />*@
+        </tbody>
+
+    </table>
+}
+@code {
+    protected List<EmployeeViewModel> employeeList = new();
+    protected List<EmployeeViewModel> searchEmployeeData = new();
+    protected EmployeeViewModel employee = new();
+    protected string SearchString { get; set; } = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        await GetEmployees();
+    }
+    protected async Task GetEmployees()
+    {
+        LoggerLog.LogDebug("GetEmployees method Called");
+        employeeList = await Http.GetFromJsonAsync<List<EmployeeViewModel>>("api/employee/fetchEmployees");
+        searchEmployeeData = employeeList;
+        LoggerLog.LogInformation($"{employeeList.Count} items are loaded");
+        LoggerLog.LogDebug("GetEmployees call ended");
+    }
+    protected void FilterUser()
+    {
+        if (!string.IsNullOrEmpty(SearchString))
+        {
+            employeeList = searchEmployeeData
+                .Where(x => x.Name?.IndexOf(SearchString, StringComparison.OrdinalIgnoreCase) != -1)
+                .ToList();
+        }
+        else
+        {
+            employeeList = searchEmployeeData;
+        }
+    }
+    protected void DeleteConfirm(int empId)
+    {
+        employee = employeeList.FirstOrDefault(x => x.Id == empId);
+    }
+    public void ResetSearch()
+    {
+        SearchString = string.Empty;
+        employeeList = searchEmployeeData;
+    }
+    
+}
+
+
